@@ -376,20 +376,23 @@ func getMessagesHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	conversationID, err := strconv.ParseInt(vars["id"], 10, 64)
 	if err != nil {
-		http.Error(w, "Invalid conversation ID", http.StatusBadRequest)
 		log.Printf("Error parsing conversation ID: %v", err)
+		http.Error(w, "Invalid conversation ID", http.StatusBadRequest)
 		return
 	}
 
 	messages, err := api.GetMessages(database.DB, conversationID)
 	if err != nil {
-		http.Error(w, "Failed to fetch messages", http.StatusInternalServerError)
 		log.Printf("Error fetching messages for conversation %d: %v", conversationID, err)
+		http.Error(w, "Failed to fetch messages", http.StatusInternalServerError)
 		return
 	}
 
-	log.Printf("Fetched messages for conversation %d: %v", conversationID, messages)
+	if len(messages) == 0 {
+		log.Printf("No messages found for conversation %d", conversationID)
+	}
 
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(messages)
 }
 
