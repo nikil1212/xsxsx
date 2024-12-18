@@ -3,6 +3,7 @@ package api
 import (
 	"database/sql"
 	"errors"
+	"log"
 	"time"
 )
 
@@ -33,6 +34,7 @@ func AddMessage(db *sql.DB, conversationID, userID int64, content string) (int64
 func GetMessages(db *sql.DB, conversationID int64) ([]Message, error) {
 	rows, err := db.Query("SELECT id, conversation_id, user_id, content, created_at FROM messages WHERE conversation_id = ?", conversationID)
 	if err != nil {
+		log.Printf("Database query error: %v", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -41,10 +43,17 @@ func GetMessages(db *sql.DB, conversationID int64) ([]Message, error) {
 	for rows.Next() {
 		var m Message
 		if err := rows.Scan(&m.ID, &m.ConversationID, &m.UserID, &m.Content, &m.CreatedAt); err != nil {
+			log.Printf("Row scan error: %v", err)
 			return nil, err
 		}
 		messages = append(messages, m)
 	}
 
+	if err = rows.Err(); err != nil {
+		log.Printf("Rows iteration error: %v", err)
+		return nil, err
+	}
+
+	log.Printf("Fetched messages: %v", messages)
 	return messages, nil
 }
